@@ -2,24 +2,29 @@ FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 必要なパッケージとNode.js (v20) のインストール
+# 1. 必須パッケージのインストール (解凍用の xz-utils を追加)
 RUN apt-get update && apt-get install -y \
     curl \
-    git \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
+    xz-utils \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# セキュリティ対策: 非rootユーザー（bbsuser）の作成
+# 2. Node.js (v20) のバイナリを直接ダウンロードして配置 (SSLエラーを -k で完全回避)
+RUN curl -fsSLk https://nodejs.org/dist/v20.12.2/node-v20.12.2-linux-x64.tar.xz -o node.tar.xz \
+    && tar -xJf node.tar.xz -C /usr/local --strip-components=1 \
+    && rm node.tar.xz
+
+# 3. セキュリティ対策: 非rootユーザーの作成
 RUN groupadd -r bbsgroup && useradd -r -g bbsgroup -m bbsuser
 
-# 作業ディレクトリの設定
+# 4. 作業ディレクトリの設定と権限付与
 WORKDIR /app
-
-# ディレクトリの所有者をbbsuserに変更
 RUN chown -R bbsuser:bbsgroup /app
 
-# 以降のコマンドは非rootユーザーで実行
+# 5. 非rootユーザーへ切り替え
 USER bbsuser
+
+# 6. コンテナ維持設定
+CMD ["sleep", "infinity"]
 
 EXPOSE 3000

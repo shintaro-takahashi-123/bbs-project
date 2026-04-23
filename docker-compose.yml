@@ -28,6 +28,7 @@ services:
       - bbs-network
     # ttyを有効にしてコンテナを起動し続ける（開発環境用）
     tty: true
+    stdin_open: true   # 追加：インタラクティブな操作を可能にする
 
 networks:
   bbs-network:
