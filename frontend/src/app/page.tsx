@@ -1,5 +1,6 @@
 import { client } from '../lib/client';
-import { createPost, deletePost } from './actions';
+import { deletePost } from './actions';
+import PostForm from './PostForm';
 
 const endpoint = process.env.MICROCMS_ENDPOINT || 'bbs';
 
@@ -7,10 +8,13 @@ export default async function Home() {
   let errorMessage = '';
 
   // 1. 読取 (Read)
-  const data = await client.getList({ endpoint }).catch(() => {
-    errorMessage = `microCMSの取得に失敗しました。エンドポイント "${endpoint}" を確認してください。`;
-    return { contents: [] as any[] };
-  });
+  let data = { contents: [] as any[] };
+  if (process.env.MICROCMS_SERVICE_DOMAIN && process.env.MICROCMS_SERVICE_DOMAIN !== 'dummy-domain') {
+      data = await client.getList({ endpoint }).catch(() => {
+        errorMessage = `microCMSの取得に失敗しました。エンドポイント "${endpoint}" を確認してください。`;
+        return { contents: [] as any[] };
+      });
+  }
 
   return (
     <main className="max-w-2xl mx-auto p-8 font-mono bg-white text-black">
@@ -20,11 +24,7 @@ export default async function Home() {
       {errorMessage ? null : (
         <>
       {/* 2. 作成 (Create) */}
-      <form action={createPost} className="flex flex-col gap-4 mb-12 border-2 border-black p-4">
-        <input name="author_name" placeholder="Name" required className="border border-black p-2 outline-none focus:bg-gray-100" />
-        <textarea name="content" placeholder="Content" required className="border border-black p-2 outline-none focus:bg-gray-100" />
-        <button className="bg-black text-white p-2 hover:bg-gray-800">POST</button>
-      </form>
+      <PostForm />
 
       {/* 一覧表示 */}
       <div className="space-y-6">
