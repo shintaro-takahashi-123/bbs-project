@@ -470,16 +470,6 @@ export default function Home() {
             )}
           </div>
 
-          {!isLoading && sortedProjects.length > 10 && (
-            <div className="mt-8 sm:mt-12 md:mt-stack-lg flex justify-center">
-              <Link
-                href="/works"
-                className="font-label-md text-label-md bg-transparent border border-outline text-primary px-8 py-3 rounded hover:bg-surface-container-low transition-colors duration-200 inline-block text-center"
-              >
-                もっと表示する
-              </Link>
-            </div>
-          )}
         </section>
 
         {/* About Me Section */}
@@ -565,7 +555,7 @@ export default function Home() {
             <div className="text-center flex flex-col gap-stack-sm">
               <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">Get in touch.</h2>
               <p className="font-body-lg text-body-lg text-secondary max-w-lg mx-auto">
-                Have a project in mind or just want to say hi? Fill out the form below and I'll get back to you shortly.
+                Have a project in mind or just want to say hi? Fill out the form below and I&apos;ll get back to you shortly.
               </p>
             </div>
 
