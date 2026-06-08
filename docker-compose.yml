@@ -1,0 +1,20 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - node_modules_vol:/app/node_modules
+      - next_vol:/app/.next
+    environment:
+      - PORT=3000
+      - WATCHPACK_POLLING=true # コンテナ内でのファイル監視ホットリロードを確実にする
+    tty: true
+    stdin_open: true
+
+volumes:
+  node_modules_vol:
+  next_vol:
