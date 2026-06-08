@@ -1,97 +1,138 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import Header from "@/components/Header";
+import { WorkItem } from "@/lib/cms";
 
-// Project Type Definition
-interface Project {
-  id: number;
-  title: string;
-  category: "UI/UX" | "Identity" | "E-Commerce" | "All";
-  subcategory: string;
-  image: string;
-  link: string;
+interface SortValue {
+  type: 1 | 2 | 3; // 1: Calendar Date, 2: Phase/Step, 3: Other/None
+  value: number;
 }
 
-const INITIAL_PROJECTS: Project[] = [
-  {
-    id: 1,
-    title: "Fintech Analytics Platform",
-    category: "UI/UX",
-    subcategory: "Dashboard",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuASUBcf_C7ki9Yima1qflJya8xHOtYv0NjXeVc2K8-U0piY9cCbulNwouO9flnvZHD41ZZl227Y47sMeQHpw-fHIbf5MIL_0lK2yGmCZADZjk9j5OgcqdZ_YF463O6aSse5QwPUn2W0wP8ISUmXgLmLiSAAR-E6oe72uy90hh5JlA14mE8OlfCApluTLkmztIEIpdfihCpmMcdKuOWBN_t9ZLciWv4rn-hz-EX2VZzAEbwzafTK_IwkmGqOVcNNkQC6fnoL0mCIPgX5",
-    link: "#"
-  },
-  {
-    id: 2,
-    title: "Aura Studio Rebrand",
-    category: "Identity",
-    subcategory: "Identity",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCwr8pGE7XwHANbLzmzcr38FWoq3nm1weflKzqgdMj2mI-0_JMRDtXih2w6NHOs8ptqnUxTU58UlHVGF1UHbYNgVHuQk3cujhX8pyLUNpnVA9i-H4vhPnaJ1Csf9velOg1idI8TTzJ-2VAVUhD33GTJzET5KhPYXga1TczEHPw8KpvpjTrwT-2gUJvJtOCIJdhf0C98w05cgIa5awVqkoS7w4jyQnRCNPl-Stbtrij5T18OfCj2-7NjmCPqac7IGDZgGZp9bNMpka8s",
-    link: "#"
-  },
-  {
-    id: 3,
-    title: "Lumina Fashion Flagship",
-    category: "E-Commerce",
-    subcategory: "E-Commerce",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuDel_u4CZwytJYLCuYlzVLqwaTgqgt_towmWNDd-n01szAM7jBf-XkjwLy2tnqPLLHVP4IJaaoRDHHTo0dFALDeWejg7K55-OAGepWhciCiOe80ONyKdIPnQp_YaIHfXWVLTHfdnDVxUOzjFtJLiyEGg_JN79kJp6M4QhbqAVp0LgE3pvRJwr3eoVfwfymx4r9dYtNyhUhT6Md8RNpy06j22psHyHcfW_EboDUXzCtXO6RpZXWSBrT517H4nNumTufdIBz5V-bp3svC",
-    link: "#"
-  },
-  {
-    id: 4,
-    title: "HealthSync Mobile App",
-    category: "UI/UX",
-    subcategory: "UI/UX",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAnKl4nbfCNkcxR6U29hgx4turXMfKj1nQV5MZ3l0BJL5nVKQy_gsyJFtkfhd-AWZ2q0YIJe86z4hRW5FzKqvK5yDH8xATZi0Iqwis15gwMHmqv9jCDD14SmaG2qIqqZisH1RoOqbJFinAljGwFWDBPEAd0VHNrfohMD7Kk9BtXSYT4vcEjP2jLllh9WTDp4nPAwuGenky6kKamEFc9NKhOkR8MqTKZbEYAR1qPY68SJ-t6YhEXpdKD9w38HFPRwhTwMTaDgDr8f8Yd",
-    link: "#"
+// Helper function to parse dates/phases for custom chronological/phase sorting
+function getSortValue(dateStr?: string): SortValue {
+  if (!dateStr) {
+    return { type: 3, value: 0 };
   }
-];
+  
+  const cleanStr = dateStr.trim();
+  
+  // 1. Check for calendar date pattern: YYYY.MM, YYYY-MM, YYYY/MM, or YYYY (possibly with range or "現在")
+  const matchYM = cleanStr.match(/(\d{4})[./-](\d{2})/);
+  if (matchYM) {
+    const year = parseInt(matchYM[1], 10);
+    const month = parseInt(matchYM[2], 10);
+    return { type: 1, value: year * 12 + month };
+  }
+  
+  const matchY = cleanStr.match(/^(\d{4})$/);
+  if (matchY) {
+    const year = parseInt(matchY[1], 10);
+    return { type: 1, value: year * 12 + 1 };
+  }
 
-const MORE_PROJECTS: Project[] = [
-  {
-    id: 5,
-    title: "EcoSmart Energy Dashboard",
-    category: "UI/UX",
-    subcategory: "Web App",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuASUBcf_C7ki9Yima1qflJya8xHOtYv0NjXeVc2K8-U0piY9cCbulNwouO9flnvZHD41ZZl227Y47sMeQHpw-fHIbf5MIL_0lK2yGmCZADZjk9j5OgcqdZ_YF463O6aSse5QwPUn2W0wP8ISUmXgLmLiSAAR-E6oe72uy90hh5JlA14mE8OlfCApluTLkmztIEIpdfihCpmMcdKuOWBN_t9ZLciWv4rn-hz-EX2VZzAEbwzafTK_IwkmGqOVcNNkQC6fnoL0mCIPgX5",
-    link: "#"
-  },
-  {
-    id: 6,
-    title: "Zenith Identity System",
-    category: "Identity",
-    subcategory: "Branding",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCwr8pGE7XwHANbLzmzcr38FWoq3nm1weflKzqgdMj2mI-0_JMRDtXih2w6NHOs8ptqnUxTU58UlHVGF1UHbYNgVHuQk3cujhX8pyLUNpnVA9i-H4vhPnaJ1Csf9velOg1idI8TTzJ-2VAVUhD33GTJzET5KhPYXga1TczEHPw8KpvpjTrwT-2gUJvJtOCIJdhf0C98w05cgIa5awVqkoS7w4jyQnRCNPl-Stbtrij5T18OfCj2-7NjmCPqac7IGDZgGZp9bNMpka8s",
-    link: "#"
+  // 2. Check for Phase/Step pattern
+  const phaseMatch = cleanStr.match(/(?:Phase|Step|ステップ|フェーズ)\s*(\d+)/i);
+  if (phaseMatch) {
+    return { type: 2, value: parseInt(phaseMatch[1], 10) };
   }
-];
+  
+  return { type: 3, value: 0 };
+}
+
+// Helper function to format date/range as Japanese YYYY年MM月DD日 format
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return "";
+  
+  const cleanStr = dateStr.trim();
+
+  // If it already contains Japanese characters like "年", return as is
+  if (cleanStr.includes("年")) {
+    return cleanStr;
+  }
+  
+  // Try matching YYYY.MM.DD or YYYY-MM-DD
+  const matchYMD = cleanStr.match(/^(\d{4})[.-](\d{2})[.-](\d{2})(?:T|\s|$)/);
+  if (matchYMD) {
+    return `${matchYMD[1]}年${parseInt(matchYMD[2], 10)}月${parseInt(matchYMD[3], 10)}日`;
+  }
+  
+  // Try matching YYYY.MM or YYYY-MM
+  const matchYM = cleanStr.match(/^(\d{4})[.-](\d{2})$/);
+  if (matchYM) {
+    return `${matchYM[1]}年${parseInt(matchYM[2], 10)}月`;
+  }
+  
+  // Try matching YYYY
+  const matchY = cleanStr.match(/^(\d{4})$/);
+  if (matchY) {
+    return `${matchY[1]}年`;
+  }
+
+  // Handle range like "YYYY.MM — YYYY.MM" or "YYYY-MM — YYYY-MM"
+  const rangeMatch = cleanStr.match(/^(\d{4})[.-](\d{2})\s*[—-]\s*(\d{4})[.-](\d{2})$/);
+  if (rangeMatch) {
+    return `${rangeMatch[1]}年${parseInt(rangeMatch[2], 10)}月〜${rangeMatch[3]}年${parseInt(rangeMatch[4], 10)}月`;
+  }
+
+  // Handle present ranges like "YYYY.MM — 現在" or "YYYY-MM — 現在"
+  const presentMatch = cleanStr.match(/^(\d{4})[.-](\d{2})\s*[—-]\s*(?:現在|Present|present)$/);
+  if (presentMatch) {
+    return `${presentMatch[1]}年${parseInt(presentMatch[2], 10)}月〜現在`;
+  }
+
+  // Try parsing general Date as fallback if it contains standard separators
+  if (cleanStr.includes("-") || cleanStr.includes("/")) {
+    const timestamp = Date.parse(cleanStr);
+    if (!isNaN(timestamp)) {
+      const d = new Date(timestamp);
+      // Format as YYYY年M月D日
+      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+    }
+  }
+
+  // If it's a phase/step like "Phase 01", it does not match calendar date, return empty to hide from date slots
+  return "";
+}
 
 export default function Home() {
   // State variables
   const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [projects, setProjects] = useState<Project[]>(INITIAL_PROJECTS);
-  const [isLoadedMore, setIsLoadedMore] = useState<boolean>(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState<boolean>(false);
+  const [projects, setProjects] = useState<WorkItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [formStatus, setFormStatus] = useState<"idle" | "submitting" | "success">("idle");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Handlers
-  const handleLoadMore = () => {
-    if (!isLoadedMore) {
-      setProjects((prev) => [...prev, ...MORE_PROJECTS]);
-      setIsLoadedMore(true);
+  // Fetch projects from secure Next.js API Route
+  useEffect(() => {
+    async function loadProjects() {
+      try {
+        const res = await fetch("/api/works");
+        if (res.ok) {
+          const data = await res.json();
+          setProjects(data);
+        } else {
+          console.error("Failed to fetch works:", res.statusText);
+        }
+      } catch (error) {
+        console.error("Error loading works:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  };
+    loadProjects();
+  }, []);
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFormStatus("submitting");
-    
+
     // Simulate API request
     setTimeout(() => {
       setFormStatus("success");
       setToastMessage("Message sent successfully! Thank you.");
-      
+
       // Reset form
       const form = e.target as HTMLFormElement;
       form.reset();
@@ -107,191 +148,345 @@ export default function Home() {
   // Filter projects based on active category
   const filteredProjects = projects.filter((project) => {
     if (activeCategory === "All") return true;
-    if (activeCategory === "UI/UX") return project.category === "UI/UX";
-    if (activeCategory === "Identity") return project.category === "Identity";
-    return true;
+    return project.category === activeCategory;
   });
+
+  // Sort projects: calendar dates newest first (descending), phase/step items ascending at the end
+  const sortedProjects = [...filteredProjects].sort((a, b) => {
+    const valA = getSortValue(a.date);
+    const valB = getSortValue(b.date);
+    
+    if (valA.type !== valB.type) {
+      return valA.type - valB.type;
+    }
+    
+    if (valA.type === 1) {
+      return valB.value - valA.value; // newest first
+    }
+    
+    if (valA.type === 2) {
+      return valA.value - valB.value; // Phase 1 -> Phase 4 ascending
+    }
+    
+    return 0;
+  });
+
+  // Display only the top 10 projects on the homepage timeline
+  const displayedProjects = sortedProjects.slice(0, 10);
 
   return (
     <>
       {/* TopNavBar Component */}
-      <header className="w-full sticky top-0 z-50 bg-background/90 backdrop-blur-md dark:bg-background/90 border-b border-secondary/10">
-        <nav className="max-w-container-max mx-auto px-margin-x flex justify-between items-center h-20 transition-all duration-200">
-          {/* Brand Logo */}
-          <a className="font-headline-md text-headline-md font-bold text-primary dark:text-on-primary hover:opacity-80 transition-opacity" href="#home">
-            STUDIO_M
-          </a>
-
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-gutter">
-            <a 
-              className={`font-label-md text-label-md pb-1 transition-all duration-200 active:scale-95 border-b-2 ${
-                activeCategory === "Home" ? "text-primary dark:text-on-primary font-bold border-primary dark:border-on-primary" : "text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary border-transparent"
-              }`} 
-              href="#home"
-            >
-              Home
-            </a>
-            <a className="font-label-md text-label-md text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-colors duration-300 transition-all duration-200 active:scale-95" href="#works">Works</a>
-            <a className="font-label-md text-label-md text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-colors duration-300 transition-all duration-200 active:scale-95" href="#about">About</a>
-            <a className="font-label-md text-label-md text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-colors duration-300 transition-all duration-200 active:scale-95" href="#contact">Contact</a>
-          </div>
-
-          {/* Trailing Action */}
-          <div className="hidden md:block">
-            <a className="inline-flex items-center justify-center bg-primary text-on-primary font-label-md text-label-md px-6 py-3 rounded hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300 active:scale-95" href="#contact">
-              Let's Talk
-            </a>
-          </div>
-
-          {/* Mobile Menu Trigger */}
-          <button 
-            className="md:hidden text-primary p-2 focus:outline-none rounded hover:bg-surface-container-low transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            <span className="material-symbols-outlined">{isMobileMenuOpen ? "close" : "menu"}</span>
-          </button>
-        </nav>
-
-        {/* Mobile Navigation Drawer */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden absolute top-20 left-0 w-full bg-background border-b border-secondary/15 animate-fade-in z-40">
-            <div className="flex flex-col p-6 space-y-4">
-              <a 
-                className="font-label-md text-label-md text-primary dark:text-on-primary font-bold py-2 border-b border-surface-container"
-                href="#home"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Home
-              </a>
-              <a 
-                className="font-label-md text-label-md text-secondary dark:text-on-secondary-container hover:text-primary py-2 border-b border-surface-container"
-                href="#works"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Works
-              </a>
-              <a 
-                className="font-label-md text-label-md text-secondary dark:text-on-secondary-container hover:text-primary py-2 border-b border-surface-container"
-                href="#about"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                About
-              </a>
-              <a 
-                className="font-label-md text-label-md text-secondary dark:text-on-secondary-container hover:text-primary py-2 border-b border-surface-container"
-                href="#contact"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Contact
-              </a>
-              <a 
-                className="inline-flex items-center justify-center bg-primary text-on-primary font-label-md text-label-md py-3 rounded hover:-translate-y-0.5 transition-all duration-200" 
-                href="#contact"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Let's Talk
-              </a>
-            </div>
-          </div>
-        )}
-      </header>
+      <Header />
 
       <main>
         {/* Home Section */}
-        <section className="max-w-container-max mx-auto px-margin-x pt-section-gap pb-section-gap flex flex-col items-start justify-center min-h-[716px]" id="home">
-          <h1 className="font-display text-display md:text-[80px] leading-tight text-primary max-w-4xl mb-stack-lg">
-            Crafting digital experiences with precision.
+        <section className="max-w-container-max mx-auto px-4 sm:px-6 md:px-margin-x pt-12 pb-12 sm:pt-16 sm:pb-16 md:pt-section-gap md:pb-section-gap flex flex-col items-center md:items-start justify-center min-h-[calc(100vh-80px)]" id="home">
+          <h1 className="font-display text-[42px] xs:text-[56px] sm:text-[96px] md:text-[160px] leading-[0.9] tracking-tighter font-semibold text-primary max-w-4xl mb-8 sm:mb-12 md:mb-stack-lg text-center md:text-left">
+            Shintaro <br /> Takahashi.
           </h1>
-          <div className="flex flex-col md:flex-row gap-stack-md md:gap-gutter items-start md:items-center w-full max-w-2xl border-l-2 border-outline-variant pl-stack-md">
-            <p className="font-body-lg text-body-lg text-on-surface-variant">
-              Based in Tokyo, specializing in UI/UX and visual identity. I build interfaces that prioritize clarity, performance, and editorial aesthetics for modern web platforms.
+          <div className="flex flex-col md:flex-row gap-3 md:gap-gutter items-center justify-center md:justify-start w-full max-w-2xl border-l-0 md:border-l-2 border-outline-variant pl-0 md:pl-stack-md text-center md:text-left">
+            <p className="font-body-lg text-body-lg text-on-surface-variant text-center md:text-left">
+              My dream is security consultant.
             </p>
-            <div className="flex items-center gap-2 text-secondary shrink-0">
+            <div className="flex items-center gap-2 text-secondary shrink-0 justify-center md:justify-start">
               <span className="material-symbols-outlined text-[20px]">location_on</span>
               <span className="font-label-md text-label-md uppercase tracking-wider">Tokyo, JP</span>
             </div>
           </div>
         </section>
 
-        {/* Works Gallery Section */}
-        <section className="max-w-container-max mx-auto px-margin-x py-section-gap" id="works">
-          <div className="flex flex-col md:flex-row justify-between items-baseline mb-stack-lg gap-stack-md">
+        {/* Career & Workflow Section */}
+        <section className="max-w-container-max mx-auto px-4 sm:px-6 md:px-margin-x py-12 sm:py-16 md:py-section-gap" id="works">
+          <div className="flex flex-col md:flex-row justify-between items-baseline mb-8 md:mb-stack-lg gap-stack-md">
             <div>
-              <h2 className="font-display text-headline-lg-mobile md:text-display text-primary mb-stack-sm">Selected Works</h2>
-              <p className="font-body-lg text-body-lg text-secondary max-w-2xl">A curated collection of digital experiences, brand identities, and interfaces designed for modern businesses.</p>
+              <h2 className="font-display text-headline-lg-mobile md:text-display text-primary mb-stack-sm">Career & Workflow</h2>
+              <p className="font-body-lg text-body-lg text-secondary max-w-2xl">セキュリティコンサルタントとしてのキャリア、取得資格、およびセキュリティ支援における実践的なアプローチ手法です。</p>
             </div>
-            <div className="flex gap-4 items-center">
-              <button 
-                className={`font-label-md text-label-md pb-1 transition-colors ${
-                  activeCategory === "All" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
-                }`}
+            <div className="flex gap-4 items-center flex-wrap">
+              <button
+                className={`font-label-md text-label-md pb-1 transition-colors ${activeCategory === "All" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
+                  }`}
                 onClick={() => setActiveCategory("All")}
               >
-                All
+                すべて
               </button>
-              <button 
-                className={`font-label-md text-label-md pb-1 transition-colors ${
-                  activeCategory === "UI/UX" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
-                }`}
-                onClick={() => setActiveCategory("UI/UX")}
+              <button
+                className={`font-label-md text-label-md pb-1 transition-colors ${activeCategory === "Career" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
+                  }`}
+                onClick={() => setActiveCategory("Career")}
               >
-                UI/UX
+                経歴
               </button>
-              <button 
-                className={`font-label-md text-label-md pb-1 transition-colors ${
-                  activeCategory === "Identity" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
-                }`}
-                onClick={() => setActiveCategory("Identity")}
+              <button
+                className={`font-label-md text-label-md pb-1 transition-colors ${activeCategory === "Qualification" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
+                  }`}
+                onClick={() => setActiveCategory("Qualification")}
               >
-                Identity
+                資格
+              </button>
+              <button
+                className={`font-label-md text-label-md pb-1 transition-colors ${activeCategory === "Workflow" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
+                  }`}
+                onClick={() => setActiveCategory("Workflow")}
+              >
+                ワークフロー
+              </button>
+              <button
+                className={`font-label-md text-label-md pb-1 transition-colors ${activeCategory === "others" ? "text-primary border-b border-primary" : "text-secondary hover:text-primary"
+                  }`}
+                onClick={() => setActiveCategory("others")}
+              >
+                その他
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-gutter">
-            {filteredProjects.map((project, index) => {
-              // Replicate the staggered margin for columns in desktop view: "md:mt-12" for even elements
-              const staggerClass = index % 2 === 1 ? "md:mt-12" : "";
-              return (
-                <a 
-                  key={project.id}
-                  className={`group block ambient-shadow bg-surface-container-lowest rounded-DEFAULT overflow-hidden transition-transform duration-300 hover:-translate-y-1 ${staggerClass} animate-fade-in`} 
-                  href={project.link}
-                >
-                  <div className="aspect-[4/3] w-full overflow-hidden bg-surface-container-low relative">
-                    <img 
-                      alt={project.title} 
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" 
-                      src={project.image}
-                    />
+          <div className="relative w-full">
+            {isLoading ? (
+              // Loading Skeleton loader
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 3 }).map((_, index) => {
+                  return (
+                    <div
+                      key={index}
+                      className="block ambient-shadow bg-surface-container-lowest rounded-DEFAULT overflow-hidden animate-pulse"
+                    >
+                      <div className="aspect-[16/9] w-full bg-surface-container-low" />
+                      <div className="p-5">
+                        <div className="h-4 bg-surface-container-low rounded w-1/4 mb-2" />
+                        <div className="h-6 bg-surface-container-low rounded w-3/4" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : displayedProjects.length > 0 ? (
+              <>
+                {/* Desktop Horizontal Timeline (md and above) */}
+                <div className="hidden md:block w-full overflow-x-auto pb-10 scrollbar-none relative">
+                  <div className="flex gap-8 items-start min-w-max px-6 pt-16 relative">
+                    {/* Axis Line */}
+                    <div className="absolute top-[148px] left-0 right-0 h-[2px] bg-secondary/15 z-0" />
+                    
+                    {displayedProjects.map((project) => {
+                      const categoryLabels: Record<string, string> = {
+                        Career: "経歴",
+                        Qualification: "資格取得",
+                        Workflow: "ワークフロー",
+                        others: "その他"
+                      };
+
+                      const renderPlaceholder = () => {
+                        let gradient = "from-blue-500/20 to-purple-500/20";
+                        let icon = "shield";
+
+                        if (project.category === "Qualification") {
+                          gradient = "from-teal-500/10 to-blue-600/10 dark:from-teal-500/20 dark:to-blue-600/20";
+                          icon = "verified";
+                        } else if (project.category === "Workflow") {
+                          gradient = "from-orange-500/10 to-amber-500/10 dark:from-orange-500/20 dark:to-amber-500/20";
+                          icon = "settings";
+                        } else {
+                          gradient = "from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20";
+                          icon = "work";
+                        }
+
+                        return (
+                          <div className={`w-full h-full bg-gradient-to-tr ${gradient} flex flex-col items-center justify-center gap-2 relative p-4 text-center`}>
+                            <span className="material-symbols-outlined text-[32px] text-secondary opacity-60">{icon}</span>
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <div key={project.id} className="relative w-[320px] pt-12 group flex flex-col items-center">
+                          {/* Date label above the dot */}
+                          {formatDate(project.date) && (
+                            <div className="absolute top-0 text-caption font-bold text-secondary uppercase tracking-widest bg-background px-2 z-10 text-center">
+                              {formatDate(project.date)}
+                            </div>
+                          )}
+                          
+                          {/* Timeline Dot */}
+                          <div className="absolute top-[76px] w-4 h-4 rounded-full border-2 border-primary bg-background z-10 transition-all duration-300 group-hover:scale-125 group-hover:bg-primary" />
+                          
+                          {/* Vertical Connector Line from Dot to Card */}
+                          <div className="absolute top-[92px] w-[2px] h-[36px] bg-secondary/15 group-hover:bg-primary/50 transition-colors" />
+
+                          {/* Card */}
+                          <a
+                            className="w-full block ambient-shadow bg-surface-container-lowest rounded-DEFAULT overflow-hidden transition-all duration-300 hover:-translate-y-1 border border-secondary/5 text-left"
+                            href={project.link}
+                          >
+                            <div className="aspect-[16/9] w-full overflow-hidden bg-surface-container-low relative border-b border-secondary/5">
+                              {project.image ? (
+                                <img
+                                  alt={project.title}
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                  src={project.image}
+                                />
+                              ) : (
+                                renderPlaceholder()
+                              )}
+                            </div>
+                            <div className="p-4 flex flex-col gap-2">
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="font-label-md text-secondary uppercase tracking-wider truncate max-w-[140px]">{project.subcategory}</span>
+                                <span className="font-label-md px-1.5 py-0.5 rounded bg-surface-container-low text-secondary border border-secondary/5 text-center shrink-0">
+                                  {categoryLabels[project.category] || project.category}
+                                </span>
+                              </div>
+                              <h3 className="text-[16px] text-primary font-semibold group-hover:text-primary/80 transition-colors leading-snug line-clamp-2 min-h-[44px]">{project.title}</h3>
+                              {project.description && (
+                                <p className="font-body-md text-[13px] text-on-surface-variant line-clamp-3 leading-relaxed mt-1">
+                                  {project.description}
+                                </p>
+                              )}
+                            </div>
+                          </a>
+                        </div>
+                      );
+                    })}
+
+                    {/* Desktop "more" Card at the very end of the scroll list */}
+                    {sortedProjects.length > 10 && (
+                      <div className="relative w-[320px] pt-12 group flex flex-col items-center shrink-0">
+                        {/* Timeline Dot */}
+                        <div className="absolute top-[76px] w-4 h-4 rounded-full border-2 border-primary bg-background z-10 transition-all duration-300 group-hover:scale-125 group-hover:bg-primary" />
+                        
+                        {/* Vertical Connector Line from Dot to Card */}
+                        <div className="absolute top-[92px] w-[2px] h-[36px] bg-secondary/15 group-hover:bg-primary/50 transition-colors" />
+
+                        {/* Card */}
+                        <Link
+                          href="/works"
+                          className="w-full block ambient-shadow bg-surface-container-lowest rounded-DEFAULT border border-secondary/5 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg text-center group/more"
+                          id="btn-more-horizontal"
+                        >
+                          <div className="aspect-[16/9] w-full bg-primary/5 flex flex-col items-center justify-center gap-2 group-hover/more:bg-primary/10 transition-colors">
+                            <span className="material-symbols-outlined text-[32px] text-primary group-hover/more:translate-x-1 transition-transform">arrow_forward</span>
+                            <span className="font-label-md text-label-md text-primary font-bold">more</span>
+                          </div>
+                          <div className="p-4 flex flex-col items-center justify-center min-h-[120px]">
+                            <p className="font-body-md text-[13px] text-secondary leading-relaxed">
+                              すべての経歴・資格・ワークフローを見る
+                            </p>
+                          </div>
+                        </Link>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-6">
-                    <span className="font-label-md text-label-md text-secondary mb-2 block uppercase tracking-wider">{project.subcategory}</span>
-                    <h3 className="font-headline-md text-headline-md text-primary">{project.title}</h3>
+                </div>
+
+                {/* Mobile Vertical Timeline (less than md) */}
+                <div className="block md:hidden relative pl-8 pr-2 py-4">
+                  {/* Vertical Line */}
+                  <div className="absolute left-[15px] top-0 bottom-0 w-[2px] bg-secondary/15" />
+
+                  <div className="flex flex-col gap-8">
+                    {displayedProjects.map((project) => {
+                      const categoryLabels: Record<string, string> = {
+                        Career: "経歴",
+                        Qualification: "資格取得",
+                        Workflow: "ワークフロー",
+                        others: "その他"
+                      };
+
+                      const renderPlaceholder = () => {
+                        let gradient = "from-blue-500/20 to-purple-500/20";
+                        let icon = "shield";
+
+                        if (project.category === "Qualification") {
+                          gradient = "from-teal-500/10 to-blue-600/10 dark:from-teal-500/20 dark:to-blue-600/20";
+                          icon = "verified";
+                        } else if (project.category === "Workflow") {
+                          gradient = "from-orange-500/10 to-amber-500/10 dark:from-orange-500/20 dark:to-amber-500/20";
+                          icon = "settings";
+                        } else {
+                          gradient = "from-purple-500/10 to-pink-500/10 dark:from-purple-500/20 dark:to-pink-500/20";
+                          icon = "work";
+                        }
+
+                        return (
+                          <div className={`w-full h-full bg-gradient-to-tr ${gradient} flex items-center justify-center relative p-4`}>
+                            <span className="material-symbols-outlined text-[32px] text-secondary opacity-60">{icon}</span>
+                          </div>
+                        );
+                      };
+
+                      return (
+                        <div key={project.id} className="relative group">
+                          {/* Timeline Dot on the left */}
+                          <div className="absolute -left-[25px] top-[24px] w-4 h-4 rounded-full border-2 border-primary bg-background z-10 transition-all duration-300 group-hover:scale-125 group-hover:bg-primary" />
+
+                          {/* Card */}
+                          <a
+                            className="w-full block ambient-shadow bg-surface-container-lowest rounded-DEFAULT overflow-hidden transition-all duration-300 border border-secondary/5 text-left"
+                            href={project.link}
+                          >
+                            <div className="aspect-[16/9] w-full overflow-hidden bg-surface-container-low relative border-b border-secondary/5">
+                              {project.image ? (
+                                <img
+                                  alt={project.title}
+                                  className="w-full h-full object-cover"
+                                  src={project.image}
+                                />
+                              ) : (
+                                renderPlaceholder()
+                              )}
+                              {project.date && formatDate(project.date) && (
+                                <div className="absolute top-3 right-3 bg-background/90 backdrop-blur-sm px-2.5 py-0.5 rounded text-[11px] font-label-md text-secondary shadow-sm">
+                                  {formatDate(project.date)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-5 flex flex-col gap-2.5">
+                              <div className="flex justify-between items-center">
+                                <span className="font-label-md text-caption text-secondary uppercase tracking-wider">{project.subcategory}</span>
+                                <span className="text-caption font-label-md px-2 py-0.5 rounded bg-surface-container-low text-secondary border border-secondary/5">
+                                  {categoryLabels[project.category] || project.category}
+                                </span>
+                              </div>
+                              <h3 className="text-[18px] text-primary font-semibold leading-snug">{project.title}</h3>
+                              {project.description && (
+                                <p className="font-body-md text-[14px] text-on-surface-variant line-clamp-3 leading-relaxed">
+                                  {project.description}
+                                </p>
+                              )}
+                            </div>
+                          </a>
+                        </div>
+                      );
+                    })}
                   </div>
-                </a>
-              );
-            })}
+                </div>
+              </>
+            ) : (
+              // Empty State
+              <div className="text-center py-12">
+                <p className="font-body-lg text-body-lg text-secondary">該当する項目が見つかりませんでした。</p>
+              </div>
+            )}
           </div>
 
-          {!isLoadedMore && (activeCategory === "All" || activeCategory === "UI/UX" || activeCategory === "Identity") && (
-            <div className="mt-stack-lg flex justify-center">
-              <button 
-                className="font-label-md text-label-md bg-transparent border border-outline text-primary px-8 py-3 rounded hover:bg-surface-container-low transition-colors duration-200"
-                onClick={handleLoadMore}
+          {!isLoading && sortedProjects.length > 10 && (
+            <div className="mt-8 sm:mt-12 md:mt-stack-lg flex justify-center">
+              <Link
+                href="/works"
+                className="font-label-md text-label-md bg-transparent border border-outline text-primary px-8 py-3 rounded hover:bg-surface-container-low transition-colors duration-200 inline-block text-center"
               >
-                Load More Works
-              </button>
+                もっと表示する
+              </Link>
             </div>
           )}
         </section>
 
         {/* About Me Section */}
-        <section className="max-w-container-max mx-auto px-margin-x py-section-gap" id="about">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-gutter items-center mb-section-gap">
+        <section className="max-w-container-max mx-auto px-4 sm:px-6 md:px-margin-x py-12 sm:py-16 md:py-section-gap" id="about">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-gutter items-center mb-12 md:mb-section-gap">
             <div className="md:col-span-7 flex flex-col gap-stack-md order-2 md:order-1">
-              <h2 className="font-display text-display text-primary">Crafting digital clarity.</h2>
+              <h2 className="font-display text-headline-lg-mobile md:text-display text-primary">Crafting digital clarity.</h2>
               <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
                 I am a senior web designer focused on creating minimalist, high-performance digital experiences. My approach blends rigorous grid systems with editorial typography to build interfaces that are both beautiful and brutally effective. I believe in reduction over decoration.
               </p>
@@ -303,22 +498,22 @@ export default function Home() {
             </div>
             <div className="md:col-span-5 order-1 md:order-2">
               <div className="aspect-[4/5] bg-surface-container-highest rounded-lg overflow-hidden ambient-shadow relative group">
-                <img 
-                  alt="Portrait" 
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale" 
+                <img
+                  alt="Portrait"
+                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 filter grayscale"
                   src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvacmMJZulHyWYx0u5yb0npn5faISNkKhMurk_HWj9z14mx9rKTQMa1s_W7gLtp84EOFc6eFvSrtObxdy3JWnX9Z7yTv7Mu3WP82KwicnQSHnlLBSBuun9geJFRg4h_rgc1HIKQxokdPXIi4-uX-cxAefC_xi-Bbj4of_HLHCIIAxnE_E8gy6VvSPZuvFxwZwxh4hvFSMl7auyU8wHi2JP-6n955iiBgQiFB-5msULQWt84D8tmC4JayOpBbMQmTargrOCmtYl7GTp"
                 />
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-gutter">
-            <div className="md:col-span-8 bg-surface-container-lowest rounded-lg p-stack-lg ambient-shadow flex flex-col gap-stack-md">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-gutter">
+            <div className="md:col-span-8 bg-surface-container-lowest rounded-lg p-5 sm:p-8 md:p-stack-lg ambient-shadow flex flex-col gap-stack-md">
               <h3 className="font-headline-md text-headline-md text-primary flex items-center gap-2 border-b border-outline-variant pb-4">
                 <span className="material-symbols-outlined">work</span> Experience
               </h3>
               <div className="flex flex-col">
-                <div className="py-stack-md border-b border-outline-variant/30 last:border-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="py-4 md:py-stack-md border-b border-outline-variant/30 last:border-0 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="font-label-md text-label-md text-secondary">2020 — Present</div>
                   <div className="md:col-span-2">
                     <h4 className="font-headline-md text-body-lg text-primary font-medium">Design Director</h4>
@@ -326,7 +521,7 @@ export default function Home() {
                     <p className="font-body-md text-body-md text-secondary mt-2">Leading design strategy and execution for premium tech clients, focusing on rigorous design systems and brand consistency.</p>
                   </div>
                 </div>
-                <div className="py-stack-md border-b border-outline-variant/30 last:border-0 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="py-4 md:py-stack-md border-b border-outline-variant/30 last:border-0 grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="font-label-md text-label-md text-secondary">2016 — 2020</div>
                   <div className="md:col-span-2">
                     <h4 className="font-headline-md text-body-lg text-primary font-medium">Senior Product Designer</h4>
@@ -337,8 +532,8 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="md:col-span-4 flex flex-col gap-gutter">
-              <div className="bg-surface-container-lowest rounded-lg p-stack-md ambient-shadow">
+            <div className="md:col-span-4 flex flex-col gap-6 md:gap-gutter">
+              <div className="bg-surface-container-lowest rounded-lg p-5 sm:p-6 md:p-stack-md ambient-shadow">
                 <h3 className="font-headline-md text-body-lg text-primary mb-stack-sm flex items-center gap-2">
                   <span className="material-symbols-outlined text-lg">code</span> Capabilities
                 </h3>
@@ -352,7 +547,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="bg-primary text-on-primary rounded-lg p-stack-md flex-grow flex flex-col justify-center">
+              <div className="bg-primary text-on-primary rounded-lg p-5 sm:p-6 md:p-stack-md flex-grow flex flex-col justify-center">
                 <h3 className="font-headline-md text-body-lg mb-stack-sm flex items-center gap-2 opacity-80">
                   <span className="material-symbols-outlined text-lg">psychology</span> My Philosophy
                 </h3>
@@ -365,16 +560,16 @@ export default function Home() {
         </section>
 
         {/* Contact Section */}
-        <section className="bg-surface-container-low py-section-gap" id="contact">
-          <div className="max-w-[720px] mx-auto w-full px-margin-x flex flex-col gap-stack-lg">
+        <section className="bg-surface-container-low py-12 sm:py-16 md:py-section-gap" id="contact">
+          <div className="max-w-[720px] mx-auto w-full px-4 sm:px-6 md:px-margin-x flex flex-col gap-8 md:gap-stack-lg">
             <div className="text-center flex flex-col gap-stack-sm">
               <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">Get in touch.</h2>
               <p className="font-body-lg text-body-lg text-secondary max-w-lg mx-auto">
                 Have a project in mind or just want to say hi? Fill out the form below and I'll get back to you shortly.
               </p>
             </div>
-            
-            <div className="bg-surface-container-lowest p-8 md:p-12 ambient-shadow rounded-xl border border-secondary border-opacity-[0.08] relative overflow-hidden">
+
+            <div className="bg-surface-container-lowest p-5 sm:p-8 md:p-12 ambient-shadow rounded-xl border border-secondary border-opacity-[0.08] relative overflow-hidden">
               {formStatus === "success" ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center animate-fade-in">
                   <span className="material-symbols-outlined text-primary text-[64px] mb-4">check_circle</span>
@@ -382,28 +577,28 @@ export default function Home() {
                   <p className="font-body-md text-body-md text-secondary">Your message has been sent successfully. I will get back to you soon.</p>
                 </div>
               ) : (
-                <form onSubmit={handleContactSubmit} className="flex flex-col gap-stack-md">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
+                <form onSubmit={handleContactSubmit} className="flex flex-col gap-4 sm:gap-stack-md">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-stack-md">
                     <div className="flex flex-col gap-2">
                       <label className="font-label-md text-label-md text-secondary" htmlFor="name">Name</label>
-                      <input 
-                        className="w-full bg-background border-0 border-b border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md text-primary outline-none transition-colors duration-300 placeholder:text-outline-variant rounded-t-DEFAULT" 
-                        id="name" 
-                        name="name" 
-                        placeholder="Jane Doe" 
-                        required 
+                      <input
+                        className="w-full bg-background border-0 border-b border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md text-primary outline-none transition-colors duration-300 placeholder:text-outline-variant rounded-t-DEFAULT"
+                        id="name"
+                        name="name"
+                        placeholder="Jane Doe"
+                        required
                         type="text"
                         disabled={formStatus === "submitting"}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
                       <label className="font-label-md text-label-md text-secondary" htmlFor="email">Email</label>
-                      <input 
-                        className="w-full bg-background border-0 border-b border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md text-primary outline-none transition-colors duration-300 placeholder:text-outline-variant rounded-t-DEFAULT" 
-                        id="email" 
-                        name="email" 
-                        placeholder="jane@example.com" 
-                        required 
+                      <input
+                        className="w-full bg-background border-0 border-b border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md text-primary outline-none transition-colors duration-300 placeholder:text-outline-variant rounded-t-DEFAULT"
+                        id="email"
+                        name="email"
+                        placeholder="jane@example.com"
+                        required
                         type="email"
                         disabled={formStatus === "submitting"}
                       />
@@ -411,19 +606,19 @@ export default function Home() {
                   </div>
                   <div className="flex flex-col gap-2">
                     <label className="font-label-md text-label-md text-secondary" htmlFor="message">Message</label>
-                    <textarea 
-                      className="w-full bg-background border-0 border-b border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md text-primary outline-none transition-colors duration-300 placeholder:text-outline-variant resize-none rounded-t-DEFAULT" 
-                      id="message" 
-                      name="message" 
-                      placeholder="Tell me about your project..." 
-                      required 
+                    <textarea
+                      className="w-full bg-background border-0 border-b border-outline-variant focus:border-primary focus:ring-0 px-4 py-3 font-body-md text-body-md text-primary outline-none transition-colors duration-300 placeholder:text-outline-variant resize-none rounded-t-DEFAULT"
+                      id="message"
+                      name="message"
+                      placeholder="Tell me about your project..."
+                      required
                       rows={5}
                       disabled={formStatus === "submitting"}
                     ></textarea>
                   </div>
                   <div className="pt-4 flex justify-center md:justify-start">
-                    <button 
-                      className="bg-primary text-on-primary font-label-md text-label-md px-10 py-4 rounded-DEFAULT hover:-translate-y-[2px] hover:shadow-[0px_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 w-full md:w-auto flex items-center justify-center gap-2 group" 
+                    <button
+                      className="bg-primary text-on-primary font-label-md text-label-md px-10 py-4 rounded-DEFAULT hover:-translate-y-[2px] hover:shadow-[0px_10px_30px_rgba(0,0,0,0.08)] transition-all duration-300 w-full md:w-auto flex items-center justify-center gap-2 group"
                       type="submit"
                       disabled={formStatus === "submitting"}
                     >
@@ -441,7 +636,7 @@ export default function Home() {
               )}
             </div>
 
-            <div className="flex flex-col items-center gap-stack-sm pt-stack-md border-t border-secondary border-opacity-15">
+            <div className="flex flex-col items-center gap-stack-sm pt-6 md:pt-stack-md border-t border-secondary border-opacity-15">
               <p className="font-label-md text-label-md text-secondary">Or find me on</p>
               <div className="flex gap-gutter">
                 <a className="font-body-md text-body-md text-primary hover:text-secondary transition-colors duration-200 underline decoration-1 underline-offset-4" href="#">LinkedIn</a>
@@ -455,24 +650,24 @@ export default function Home() {
 
       {/* Footer Component */}
       <footer className="w-full bg-background dark:bg-background border-t border-secondary border-opacity-15">
-        <div className="max-w-container-max mx-auto px-margin-x py-stack-lg flex flex-col md:flex-row justify-between items-center gap-stack-md">
+        <div className="max-w-container-max mx-auto px-4 sm:px-6 md:px-margin-x py-stack-lg flex flex-col md:flex-row justify-between items-center gap-stack-md">
           {/* Brand Logo */}
           <span className="font-label-md text-label-md font-bold text-primary dark:text-on-primary">STUDIO_M</span>
           {/* Footer Links */}
-          <div className="flex gap-gutter items-center">
+          <div className="flex flex-wrap justify-center gap-4 sm:gap-gutter items-center">
             <a className="font-caption text-caption text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-opacity duration-200 hover:opacity-80" href="#">LinkedIn</a>
             <a className="font-caption text-caption text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-opacity duration-200 hover:opacity-80" href="#">Twitter</a>
             <a className="font-caption text-caption text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-opacity duration-200 hover:opacity-80" href="#">Dribbble</a>
             <a className="font-caption text-caption text-secondary dark:text-on-secondary-container hover:text-primary dark:hover:text-on-primary transition-opacity duration-200 hover:opacity-80" href="#">Email</a>
           </div>
           {/* Copyright */}
-          <span className="font-caption text-caption text-secondary dark:text-on-secondary-container">© 2024 Studio M. All rights reserved.</span>
+          <span className="font-caption text-caption text-secondary dark:text-on-secondary-container text-center md:text-left">© 2024 Studio M. All rights reserved.</span>
         </div>
       </footer>
 
       {/* Dynamic Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-8 right-8 bg-primary text-on-primary px-6 py-4 rounded-lg shadow-xl animate-slide-in flex items-center gap-3 z-50">
+        <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:bottom-8 sm:right-8 bg-primary text-on-primary px-6 py-4 rounded-lg shadow-xl animate-slide-in flex items-center gap-3 z-50">
           <span className="material-symbols-outlined">info</span>
           <span className="font-body-md text-body-md">{toastMessage}</span>
         </div>
